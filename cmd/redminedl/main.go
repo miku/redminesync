@@ -145,7 +145,7 @@ func downloadAttachment(link, rootDirectory string) error {
 	dst := filepath.Join(rootDirectory, u.Path)
 	dstDir := filepath.Dir(dst)
 	if _, err := os.Stat(dstDir); os.IsNotExist(err) {
-		if err := os.Mkdir(dstDir, 0644); err != nil {
+		if err := os.MkdirAll(dstDir, 0644); err != nil {
 			log.Fatal(err)
 		}
 		log.Printf("created directory: %s", dstDir)
