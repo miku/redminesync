@@ -12,7 +12,7 @@ const MaxIssueNumber = 200000
 
 // FindMaxIssue returns the maximum issue id by probing the API.
 func FindMaxIssue(baseURL, apiKey string) (int, error) {
-	return findMax(0, MaxIssueNumber, apiKey)
+	return findMax(0, MaxIssueNumber, baseURL, apiKey)
 }
 
 func findMax(a, b int, baseURL, apiKey string) (result int, err error) {
@@ -34,9 +34,9 @@ func findMax(a, b int, baseURL, apiKey string) (result int, err error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == 404 {
-		result, err = findMax(a, mid)
+		result, err = findMax(a, mid, baseURL, apiKey)
 	} else {
-		result, err = findMax(mid, b)
+		result, err = findMax(mid, b, baseURL, apiKey)
 	}
 	return
 }
