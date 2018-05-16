@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/miku/redminedl"
 	log "github.com/sirupsen/logrus"
@@ -30,7 +31,7 @@ Where 123 is the issue number and 456 the download id.
 var (
 	startIssueNumber = flag.Int("f", 1, "start issue number")
 	endIssueNumber   = flag.Int("t", -1, "end issue number, -1 means automatically find the max issue number")
-	syncDir          = flag.String("d", filepath.Join(os.TempDir(), "rsf"), "sync directory")
+	syncDir          = flag.String("d", filepath.Join(UserHomeDir(), ".redminesync"), "sync directory")
 )
 
 // IssueResponse represents an issue, including various optional items, such as
@@ -111,6 +112,18 @@ type IssueResponse struct {
 		} `json:"tracker"`
 		UpdatedOn string `json:"updated_on"`
 	} `json:"issue"`
+}
+
+// UserHomeDir returns the home directory of the user.
+func UserHomeDir() string {
+	if runtime.GOOS == "windows" {
+		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
+		if home == "" {
+			home = os.Getenv("USERPROFILE")
+		}
+		return home
+	}
+	return os.Getenv("HOME")
 }
 
 // downloadFile saves the contents of a URL to a file. The directory the files
