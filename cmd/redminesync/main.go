@@ -15,18 +15,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var usageMessage = `redminesyncfiles [-f ID] [-t ID] -d DIRECTORY
+var usageMessage = fmt.Sprintf(`redminesync [-f ID] [-t ID] -d DIRECTORY
 
 Downloads all reachable attachements from redmine into a local folder. The
 target folder structure will look like:
 
-    rsf/123/download/456/file.txt
+    %s/123/download/456/file.txt
 
 Where 123 is the issue number and 456 the download id.
 
-  -f INT    start with this issue number, might shorten the process
-  -t INT    end with this issue number, might shorten the process
-`
+  -d DIRECTORY    target directory
+  -f INT          start with this issue number, might shorten the process
+  -t INT          end with this issue number, might shorten the process
+
+`, *syncDir)
 
 var (
 	startIssueNumber = flag.Int("f", 1, "start issue number")
@@ -150,12 +152,12 @@ func downloadFile(link, filepath string) (err error) {
 	return nil
 }
 
-func downloadAttachment(link, rootDirectory string) error {
+func downloadAttachment(link, rootDirectory string, issue int) error {
 	u, err := url.Parse(link)
 	if err != nil {
 		return err
 	}
-	dst := filepath.Join(rootDirectory, u.Path)
+	dst := filepath.Join(rootDirectory, fmt.Sprintf("%s", issue), u.Path)
 	dstDir := filepath.Dir(dst)
 	if _, err := os.Stat(dstDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(dstDir, 0755); err != nil {
@@ -167,8 +169,10 @@ func downloadAttachment(link, rootDirectory string) error {
 }
 
 func main() {
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, usageMessage)
+	}
 	flag.Parse()
-
 	log.Printf("syncing redmine attachements to %s", *syncDir)
 
 	if *endIssueNumber == -1 {
@@ -208,7 +212,7 @@ func main() {
 		}
 		for _, attachment := range issue.Issue.Attachments {
 			// fmt.Printf("% 5d\t%6d\t% 10d\t%s\n", i, attachment.Id, attachment.Filesize, attachment.ContentUrl)
-			if err := downloadAttachment(attachment.ContentUrl, *syncDir); err != nil {
+			if err := downloadAttachment(attachment.ContentUrl, *syncDir, i); err != nil {
 				log.Fatal(err)
 			}
 		}
