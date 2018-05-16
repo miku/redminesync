@@ -161,7 +161,7 @@ func downloadAttachment(link, rootDirectory string, issue int) error {
 	if err != nil {
 		return err
 	}
-	dst := filepath.Join(rootDirectory, fmt.Sprintf("%s", issue), u.Path)
+	dst := filepath.Join(rootDirectory, fmt.Sprintf("%d", issue), u.Path)
 	dstDir := filepath.Dir(dst)
 	if _, err := os.Stat(dstDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(dstDir, 0755); err != nil {
