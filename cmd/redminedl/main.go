@@ -2,10 +2,35 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
 
+	"github.com/miku/redminedl"
 	log "github.com/sirupsen/logrus"
+)
+
+var usageMessage = `redminesyncfiles [-f ID] [-t ID] -d DIRECTORY
+
+Downloads all reachable attachements from redmine into a local folder. The
+target folder structure will look like:
+
+    rsf/123/download/456/file.txt
+
+Where 123 is the issue number and 456 the download id.
+
+  -f INT    start with this issue number, might shorten the process
+  -t INT    end with this issue number, might shorten the process
+`
+
+var (
+	startIssueNumber = flag.Int("f", 1, "start issue number")
+	endIssueNumber   = flag.Int("t", -1, "end issue number, -1 means automatically find the max issue number")
+	syncDir          = flag.String("d", filepath.Join(os.TempDir(), "rsf"), "sync directory")
 )
 
 // IssueResponse represents an issue, including various optional items, such as
@@ -88,8 +113,61 @@ type IssueResponse struct {
 	} `json:"issue"`
 }
 
+// downloadFile saves the contents of a URL to a file. The directory the files
+// is in must exist.
+func downloadFile(link, filepath string) (err error) {
+	out, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	resp, err := http.Get(link)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad status: %s", resp.Status)
+	}
+	n, err := io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+	log.Printf("downloaded [%d]: %s", n, link)
+	return nil
+}
+
+func downloadAttachment(link, rootDirectory string) error {
+	u, err := url.Parse(link)
+	if err != nil {
+		return err
+	}
+	dst := filepath.Join(rootDirectory, u.Path)
+	dstDir := filepath.Dir(dst)
+	if _, err := os.Stat(dstDir); os.IsNotExist(err) {
+		if err := os.Mkdir(dstDir, 0644); err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("created directory: %s", dstDir)
+	}
+	return downloadFile(link, dst)
+}
+
 func main() {
-	for i := 1; i < 14000; i++ {
+	flag.Parse()
+
+	log.Printf("syncing redmine attachements to %s", *syncDir)
+
+	if *endIssueNumber == -1 {
+		maxIssue, err := redminedl.FindMaxIssue()
+		if err != nil {
+			log.Fatal(err)
+		}
+		*endIssueNumber = maxIssue
+		log.Printf("found max issue number: %d", maxIssue)
+	}
+
+	for i := *startIssueNumber; i <= *endIssueNumber; i++ {
 		issueNo, baseURL := fmt.Sprintf("%d", i), "https://projekte.ub.uni-leipzig.de"
 		link := fmt.Sprintf("%s/issues/%s.json?include=attachments", baseURL, issueNo)
 
@@ -116,7 +194,10 @@ func main() {
 			log.Fatalf("decode: %s", err)
 		}
 		for _, attachment := range issue.Issue.Attachments {
-			fmt.Printf("% 5d\t%6d\t% 10d\t%s\n", i, attachment.Id, attachment.Filesize, attachment.ContentUrl)
+			// fmt.Printf("% 5d\t%6d\t% 10d\t%s\n", i, attachment.Id, attachment.Filesize, attachment.ContentUrl)
+			if err := downloadAttachment(attachment.ContentUrl, *syncDir); err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 }
