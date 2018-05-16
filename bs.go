@@ -1,4 +1,4 @@
-package redminedl
+package redminesync
 
 import (
 	"fmt"

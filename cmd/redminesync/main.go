@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/miku/redminedl"
+	"github.com/miku/redminesync"
 	log "github.com/sirupsen/logrus"
 )
 
