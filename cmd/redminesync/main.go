@@ -34,6 +34,8 @@ var (
 	startIssueNumber = flag.Int("f", 1, "start issue number")
 	endIssueNumber   = flag.Int("t", -1, "end issue number, -1 means automatically find the max issue number")
 	syncDir          = flag.String("d", filepath.Join(UserHomeDir(), ".redminesync"), "sync directory")
+	apiKey           = flag.String("k", os.Getenv("REDMINE_API_KEY"), "redmine API key possible from envvar REDMINE_API_KEY")
+	baseURL          = flag.String("b", "https://projekte.ub.uni-leipzig.de", "base URL")
 )
 
 // IssueResponse represents an issue, including various optional items, such as
@@ -185,14 +187,14 @@ func main() {
 	}
 
 	for i := *startIssueNumber; i <= *endIssueNumber; i++ {
-		issueNo, baseURL := fmt.Sprintf("%d", i), "https://projekte.ub.uni-leipzig.de"
-		link := fmt.Sprintf("%s/issues/%s.json?include=attachments", baseURL, issueNo)
+		issueNo := fmt.Sprintf("%d", i)
+		link := fmt.Sprintf("%s/issues/%s.json?include=attachments", *baseURL, issueNo)
 
 		req, err := http.NewRequest("GET", link, nil)
 		if err != nil {
 			log.Fatal(err)
 		}
-		req.Header.Add("X-Redmine-API-Key", "a244016e302926344f08afb18c0af1b5b581ea67")
+		req.Header.Add("X-Redmine-API-Key", *apiKey)
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -211,7 +213,6 @@ func main() {
 			log.Fatalf("decode: %s", err)
 		}
 		for _, attachment := range issue.Issue.Attachments {
-			// fmt.Printf("% 5d\t%6d\t% 10d\t%s\n", i, attachment.Id, attachment.Filesize, attachment.ContentUrl)
 			if err := downloadAttachment(attachment.ContentUrl, *syncDir, i); err != nil {
 				log.Fatal(err)
 			}
