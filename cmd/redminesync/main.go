@@ -15,20 +15,22 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var usageMessage = fmt.Sprintf(`redminesync [-f ID] [-t ID] -d DIRECTORY
+var usageMessage = fmt.Sprintf(`redminesync [-k apikey] [-b URL] [-f ID] [-t ID] [-d DIRECTORY]
 
-Downloads all reachable attachements from redmine into a local folder. The
+Downloads all reachable attachments from redmine into a local folder. The
 target folder structure will look like:
 
     %s/123/download/456/file.txt
 
 Where 123 is the issue number and 456 the download id.
 
-  -d DIRECTORY    target directory
+  -b URL          redmine base url (default: %s)
+  -k KEY          redmine api key [%s]
+  -d DIRECTORY    target directory (default: %s)
   -f INT          start with this issue number, might shorten the process
   -t INT          end with this issue number, might shorten the process
 
-`, *syncDir)
+`, *syncDir, *baseURL, *apiKey, *syncDir)
 
 var (
 	startIssueNumber = flag.Int("f", 1, "start issue number")
@@ -175,7 +177,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, usageMessage)
 	}
 	flag.Parse()
-	log.Printf("syncing redmine attachements to %s", *syncDir)
+	log.Printf("syncing redmine attachments to %s", *syncDir)
 
 	if *endIssueNumber == -1 {
 		maxIssue, err := redminesync.FindMaxIssue()
