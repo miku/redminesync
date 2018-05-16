@@ -104,7 +104,7 @@ func main() {
 			log.Fatal(err)
 		}
 		defer resp.Body.Close()
-		if resp.StatusCode == 404 {
+		if resp.StatusCode == 404 || resp.StatusCode == 403 {
 			continue
 		}
 		if resp.StatusCode >= 400 {
