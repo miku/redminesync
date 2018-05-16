@@ -172,7 +172,7 @@ func main() {
 	log.Printf("syncing redmine attachements to %s", *syncDir)
 
 	if *endIssueNumber == -1 {
-		maxIssue, err := redminedl.FindMaxIssue()
+		maxIssue, err := redminesync.FindMaxIssue()
 		if err != nil {
 			log.Fatal(err)
 		}
