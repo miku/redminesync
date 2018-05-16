@@ -1,7 +1,7 @@
 SHELL = /bin/bash
-TARGETS = redminedl
+TARGETS = redminesync
 
-PKGNAME = redminedl
+PKGNAME = redminesync
 
 all: $(TARGETS)
 
