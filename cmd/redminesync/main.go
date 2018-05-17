@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/cheggaaa/pb"
 	"github.com/miku/redminesync"
+	"github.com/schollz/progressbar"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -210,9 +210,8 @@ func main() {
 		}
 	}
 
-	count := *endIssueNumber - *startIssueNumber
-
-	bar := pb.StartNew(count)
+	count := *endIssueNumber - *startIssueNumber + 1
+	bar := progressbar.New(count)
 
 	for i := *startIssueNumber; i <= *endIssueNumber; i++ {
 		issueNo := fmt.Sprintf("%d", i)
@@ -245,6 +244,6 @@ func main() {
 				log.Fatal(err)
 			}
 		}
-		bar.Increment()
+		bar.Add(1)
 	}
 }
