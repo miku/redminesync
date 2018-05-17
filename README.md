@@ -23,5 +23,6 @@ Where 123 is the issue number and 456 the download id.
   -verbose        be verbose
   -P              show progressbar
 
-Limitation: Currently all ticket ids are rechecked on every invocation, since any tickets might have a new upload.
+Limitation: Currently all ticket ids are rechecked on every invocation, since
+any tickets might have a new upload.
 ```
