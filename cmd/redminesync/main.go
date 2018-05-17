@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/cheggaaa/pb"
 	"github.com/miku/redminesync"
 	log "github.com/sirupsen/logrus"
 )
@@ -38,6 +39,7 @@ var (
 	syncDir          = flag.String("d", filepath.Join(UserHomeDir(), ".redminesync"), "sync directory")
 	apiKey           = flag.String("k", os.Getenv("REDMINE_API_KEY"), "redmine API key possible from envvar REDMINE_API_KEY")
 	baseURL          = flag.String("b", "https://projekte.ub.uni-leipzig.de", "base URL")
+	verbose          = flag.Bool("verbose", false, "verbose output")
 )
 
 // IssueResponse represents an issue, including various optional items, such as
@@ -161,9 +163,13 @@ func downloadFile(link, filepath string) (err error) {
 		if err != nil {
 			return err
 		}
-		log.Printf("downloaded [%d]: %s", n, link)
+		if *verbose {
+			log.Printf("downloaded [%d]: %s", n, link)
+		}
 	} else {
-		log.Printf("already downloaded: %s", filepath)
+		if *verbose {
+			log.Printf("already downloaded: %s", filepath)
+		}
 	}
 	return nil
 }
@@ -188,7 +194,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, usageMessage)
 	}
 	flag.Parse()
-	log.Printf("syncing redmine attachments to %s", *syncDir)
+
+	if *verbose {
+		log.Printf("syncing redmine attachments to %s", *syncDir)
+	}
 
 	if *endIssueNumber == 0 {
 		maxIssue, err := redminesync.FindMaxIssue(*baseURL, *apiKey)
@@ -196,8 +205,14 @@ func main() {
 			log.Fatal(err)
 		}
 		*endIssueNumber = maxIssue
-		log.Printf("found max issue number: %d", maxIssue)
+		if *verbose {
+			log.Printf("found max issue number: %d", maxIssue)
+		}
 	}
+
+	count := *endIssueNumber - *startIssueNumber
+
+	bar := pb.StartNew(count)
 
 	for i := *startIssueNumber; i <= *endIssueNumber; i++ {
 		issueNo := fmt.Sprintf("%d", i)
@@ -230,5 +245,6 @@ func main() {
 				log.Fatal(err)
 			}
 		}
+		bar.Increment()
 	}
 }
