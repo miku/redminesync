@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/dchest/safefile"
 	"github.com/miku/redminesync"
 	log "github.com/sirupsen/logrus"
 )
@@ -137,7 +136,7 @@ func UserHomeDir() string {
 // is in must exist.
 func downloadFile(link, filepath string) (err error) {
 	if _, err := os.Stat(filepath); os.IsNotExist(err) {
-		out, err := safefile.Create(filepath, 0644)
+		out, err := os.Create(filepath)
 		if err != nil {
 			return err
 		}
@@ -158,15 +157,13 @@ func downloadFile(link, filepath string) (err error) {
 		if resp.StatusCode != http.StatusOK {
 			return fmt.Errorf("bad status: %s", resp.Status)
 		}
-
 		n, err := io.Copy(out, resp.Body)
 		if err != nil {
 			return err
 		}
-		if err := out.Commit(); err != nil {
-			return nil
-		}
 		log.Printf("downloaded [%d]: %s", n, link)
+	} else {
+		log.Printf("already downloaded: %s", filepath)
 	}
 	return nil
 }
