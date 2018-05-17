@@ -140,11 +140,19 @@ func downloadFile(link, filepath string) (err error) {
 		return err
 	}
 	defer out.Close()
-	resp, err := http.Get(link)
+
+	req, err := http.NewRequest("GET", link, nil)
 	if err != nil {
-		return err
+		log.Fatal(err)
+	}
+	req.Header.Add("X-Redmine-API-Key", *apiKey)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
 	}
 	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("bad status: %s", resp.Status)
 	}
