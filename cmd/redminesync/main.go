@@ -17,12 +17,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var usageMessage = fmt.Sprintf(`redminesync [-k apikey] [-b URL] [-f ID] [-t ID] [-d DIRECTORY]
+var usageMessage = fmt.Sprintf(`redminesync [-k apikey] [-b URL] [-f ID] [-t ID] [-d DIRECTORY] [-verbose] [-P]
 
 Downloads all reachable attachments from redmine into a local folder. The
 target folder structure will look like:
 
-    %s/123/download/456/file.txt
+    %s/123/456/file.txt
 
 Where 123 is the issue number and 456 the download id.
 
@@ -31,7 +31,10 @@ Where 123 is the issue number and 456 the download id.
   -d DIRECTORY    target directory (default: %s)
   -f INT          start with this issue number, might shorten the process
   -t INT          end with this issue number, might shorten the process
+  -verbose        be verbose
+  -P              show progressbar
 
+Limitation: Currently all ticket ids are rechecked on every invocation, since any tickets might have a new upload.
 `, *syncDir, *baseURL, *apiKey, *syncDir)
 
 var (
@@ -39,7 +42,7 @@ var (
 	endIssueNumber   = flag.Int("t", 0, "end issue number, 0 means automatically find the max issue number")
 	syncDir          = flag.String("d", filepath.Join(UserHomeDir(), ".redminesync"), "sync directory")
 	apiKey           = flag.String("k", os.Getenv("REDMINE_API_KEY"), "redmine API key possible from envvar REDMINE_API_KEY")
-	baseURL          = flag.String("b", "https://projekte.ub.uni-leipzig.de", "base URL")
+	baseURL          = flag.String("b", "https://projects.localhost", "base URL")
 	verbose          = flag.Bool("verbose", false, "verbose output")
 	showProgress     = flag.Bool("P", false, "show progressbar")
 )
@@ -201,6 +204,10 @@ func main() {
 	}
 	flag.Parse()
 
+	if *apiKey == "" {
+		log.Fatal("REDMINE_API_KEY not defined and -k not given")
+	}
+
 	if *verbose {
 		log.Printf("syncing redmine attachments to %s", *syncDir)
 	}
@@ -217,11 +224,15 @@ func main() {
 	}
 
 	var bar *progressbar.ProgressBar
-	if *showProgress {
+	if *showProgress && !*verbose {
 		bar = progressbar.New(*endIssueNumber - *startIssueNumber)
 	}
 
 	for i := *startIssueNumber; i <= *endIssueNumber; i++ {
+		if *showProgress && !*verbose {
+			bar.Add(1)
+		}
+
 		issueNo := fmt.Sprintf("%d", i)
 		link := fmt.Sprintf("%s/issues/%s.json?include=attachments", *baseURL, issueNo)
 
@@ -251,9 +262,6 @@ func main() {
 			if err := downloadAttachment(attachment.ContentUrl, *syncDir, i); err != nil {
 				log.Fatal(err)
 			}
-		}
-		if *showProgress {
-			bar.Add(1)
 		}
 	}
 }

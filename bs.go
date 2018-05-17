@@ -5,8 +5,9 @@ import (
 	"net/http"
 )
 
-// MaxIssueNumber for probing the real maximum.
-const MaxIssueNumber = 200000
+// MaxIssueNumber for probing the real maximum. It will be troublesome, if a
+// ticket system has actually this number of issues.
+const MaxIssueNumber = 1000000
 
 // FindMaxIssue returns the maximum issue id by probing the API.
 func FindMaxIssue(baseURL, apiKey string) (int, error) {
@@ -16,6 +17,9 @@ func FindMaxIssue(baseURL, apiKey string) (int, error) {
 func findMax(a, b int, baseURL, apiKey string) (result int, err error) {
 	mid := a + (b-a)/2
 	if a == b || a == mid {
+		if a == MaxIssueNumber-1 {
+			return a, fmt.Errorf("could not find number of issues, probably due to insufficient access")
+		}
 		return a, nil
 	}
 	issueNo := fmt.Sprintf("%d", mid)
@@ -30,6 +34,7 @@ func findMax(a, b int, baseURL, apiKey string) (result int, err error) {
 		return 0, err
 	}
 	defer resp.Body.Close()
+
 	if resp.StatusCode == 404 {
 		result, err = findMax(a, mid, baseURL, apiKey)
 	} else {
