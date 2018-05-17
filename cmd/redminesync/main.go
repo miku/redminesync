@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/dchest/safefile"
 	"github.com/miku/redminesync"
 	log "github.com/sirupsen/logrus"
 )
@@ -34,7 +35,7 @@ Where 123 is the issue number and 456 the download id.
 
 var (
 	startIssueNumber = flag.Int("f", 1, "start issue number")
-	endIssueNumber   = flag.Int("t", -1, "end issue number, -1 means automatically find the max issue number")
+	endIssueNumber   = flag.Int("t", 0, "end issue number, 0 means automatically find the max issue number")
 	syncDir          = flag.String("d", filepath.Join(UserHomeDir(), ".redminesync"), "sync directory")
 	apiKey           = flag.String("k", os.Getenv("REDMINE_API_KEY"), "redmine API key possible from envvar REDMINE_API_KEY")
 	baseURL          = flag.String("b", "https://projekte.ub.uni-leipzig.de", "base URL")
@@ -135,32 +136,38 @@ func UserHomeDir() string {
 // downloadFile saves the contents of a URL to a file. The directory the files
 // is in must exist.
 func downloadFile(link, filepath string) (err error) {
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
+	if _, err := os.Stat(filepath); os.IsNotExist(err) {
+		out, err := safefile.Create(filepath, 0644)
+		if err != nil {
+			return err
+		}
+		defer out.Close()
 
-	req, err := http.NewRequest("GET", link, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	req.Header.Add("X-Redmine-API-Key", *apiKey)
+		req, err := http.NewRequest("GET", link, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		req.Header.Add("X-Redmine-API-Key", *apiKey)
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("bad status: %s", resp.Status)
+		}
+
+		n, err := io.Copy(out, resp.Body)
+		if err != nil {
+			return err
+		}
+		if err := out.Commit(); err != nil {
+			return nil
+		}
+		log.Printf("downloaded [%d]: %s", n, link)
 	}
-	n, err := io.Copy(out, resp.Body)
-	if err != nil {
-		return err
-	}
-	log.Printf("downloaded [%d]: %s", n, link)
 	return nil
 }
 
@@ -187,7 +194,7 @@ func main() {
 	flag.Parse()
 	log.Printf("syncing redmine attachments to %s", *syncDir)
 
-	if *endIssueNumber == -1 {
+	if *endIssueNumber == 0 {
 		maxIssue, err := redminesync.FindMaxIssue(*baseURL, *apiKey)
 		if err != nil {
 			log.Fatal(err)
