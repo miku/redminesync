@@ -41,6 +41,7 @@ var (
 	apiKey           = flag.String("k", os.Getenv("REDMINE_API_KEY"), "redmine API key possible from envvar REDMINE_API_KEY")
 	baseURL          = flag.String("b", "https://projekte.ub.uni-leipzig.de", "base URL")
 	verbose          = flag.Bool("verbose", false, "verbose output")
+	showProgress     = flag.Bool("P", false, "show progressbar")
 )
 
 // IssueResponse represents an issue, including various optional items, such as
@@ -215,8 +216,10 @@ func main() {
 		}
 	}
 
-	count := *endIssueNumber - *startIssueNumber + 1
-	bar := progressbar.New(count)
+	var bar *progressbar.ProgressBar
+	if *showProgress {
+		bar = progressbar.New(*endIssueNumber - *startIssueNumber)
+	}
 
 	for i := *startIssueNumber; i <= *endIssueNumber; i++ {
 		issueNo := fmt.Sprintf("%d", i)
@@ -249,6 +252,8 @@ func main() {
 				log.Fatal(err)
 			}
 		}
-		bar.Add(1)
+		if *showProgress {
+			bar.Add(1)
+		}
 	}
 }
