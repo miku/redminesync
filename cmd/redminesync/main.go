@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/miku/redminesync"
 	"github.com/schollz/progressbar"
@@ -179,7 +180,11 @@ func downloadAttachment(link, rootDirectory string, issue int) error {
 	if err != nil {
 		return err
 	}
-	dst := filepath.Join(rootDirectory, fmt.Sprintf("%d", issue), u.Path)
+	path := strings.Replace(u.Path, "attachments/download", "", 1)
+	if len(u.Path)-len(path) != len("attachments/download") {
+		return fmt.Errorf("unexpected redmine download url: %s", link)
+	}
+	dst := filepath.Join(rootDirectory, fmt.Sprintf("%d", issue), path)
 	dstDir := filepath.Dir(dst)
 	if _, err := os.Stat(dstDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(dstDir, 0755); err != nil {
