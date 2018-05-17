@@ -34,7 +34,11 @@ Where 123 is the issue number and 456 the download id.
   -verbose        be verbose
   -P              show progressbar
 
-Limitation: Currently all ticket ids are rechecked on every invocation, since any tickets might have a new upload.
+Limitation: Currently all ticket ids are rechecked on every invocation, since
+any tickets might have a new upload.
+
+Environment variables: REDMINE_API_KEY, REDMINE_BASE_URL
+
 `, *syncDir, *baseURL, *apiKey, *syncDir)
 
 var (
