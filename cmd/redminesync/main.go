@@ -179,7 +179,6 @@ func downloadAttachment(link, rootDirectory string, issue int) error {
 		if err := os.MkdirAll(dstDir, 0755); err != nil {
 			log.Fatal(err)
 		}
-		log.Printf("created directory: %s", dstDir)
 	}
 	return downloadFile(link, dst)
 }
