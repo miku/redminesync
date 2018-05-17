@@ -3,8 +3,6 @@ package redminesync
 import (
 	"fmt"
 	"net/http"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // MaxIssueNumber for probing the real maximum.
@@ -16,7 +14,6 @@ func FindMaxIssue(baseURL, apiKey string) (int, error) {
 }
 
 func findMax(a, b int, baseURL, apiKey string) (result int, err error) {
-	log.Printf("searching max issue number: %d %d", a, b)
 	mid := a + (b-a)/2
 	if a == b || a == mid {
 		return a, nil
