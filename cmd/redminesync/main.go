@@ -26,9 +26,9 @@ target folder structure will look like:
 
 Where 123 is the issue number and 456 the download id.
 
-  -b URL          redmine base url (default: %s)
+  -b URL          redmine base url [%s]
   -k KEY          redmine api key [%s]
-  -d DIRECTORY    target directory (default: %s)
+  -d DIRECTORY    target directory [%s]
   -f INT          start with this issue number, might shorten the process
   -t INT          end with this issue number, might shorten the process
   -verbose        be verbose
@@ -42,7 +42,7 @@ var (
 	endIssueNumber   = flag.Int("t", 0, "end issue number, 0 means automatically find the max issue number")
 	syncDir          = flag.String("d", filepath.Join(UserHomeDir(), ".redminesync"), "sync directory")
 	apiKey           = flag.String("k", os.Getenv("REDMINE_API_KEY"), "redmine API key possible from envvar REDMINE_API_KEY")
-	baseURL          = flag.String("b", "https://projects.localhost", "base URL")
+	baseURL          = flag.String("b", os.Getenv("REDMINE_BASE_URL"), "base URL")
 	verbose          = flag.Bool("verbose", false, "verbose output")
 	showProgress     = flag.Bool("P", false, "show progressbar")
 )
@@ -206,6 +206,9 @@ func main() {
 
 	if *apiKey == "" {
 		log.Fatal("REDMINE_API_KEY not defined and -k not given")
+	}
+	if *baseURL == "" {
+		log.Fatal("REDMINE_BASE_URL not defined and -b not given")
 	}
 
 	if *verbose {
