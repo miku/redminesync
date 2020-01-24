@@ -44,7 +44,7 @@ Environment variables: REDMINE_API_KEY, REDMINE_BASE_URL
 var (
 	startIssueNumber = flag.Int("f", 1, "start issue number")
 	endIssueNumber   = flag.Int("t", 0, "end issue number, 0 means automatically find the max issue number")
-	syncDir          = flag.String("d", filepath.Join(UserHomeDir(), ".redminesync"), "sync directory")
+	syncDir          = flag.String("d", filepath.Join(UserHomeDir(), ".cache", ".redminesync"), "sync directory")
 	apiKey           = flag.String("k", os.Getenv("REDMINE_API_KEY"), "redmine API key possible from envvar REDMINE_API_KEY")
 	baseURL          = flag.String("b", os.Getenv("REDMINE_BASE_URL"), "base URL")
 	verbose          = flag.Bool("verbose", false, "verbose output")
