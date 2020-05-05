@@ -2,7 +2,12 @@
 
 Download attachments from Redmine.
 
-By default, download all available downloads.
+```
+$ go get github.com/miku/redminesync/cmd/redminesync
+$ redminesync -verbose -k 123412341234123412341234 -b https://redmine.example.com
+```
+
+By default, it will fetch all available downloads.
 
 ```
 $ redminesync -h
