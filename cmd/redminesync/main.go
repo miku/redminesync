@@ -5,13 +5,14 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
+	"github.com/adrg/xdg"
 	"github.com/miku/redminesync"
 	"github.com/schollz/progressbar"
 	log "github.com/sirupsen/logrus"
@@ -44,7 +45,7 @@ Environment variables: REDMINE_API_KEY, REDMINE_BASE_URL
 var (
 	startIssueNumber = flag.Int("f", 1, "start issue number")
 	endIssueNumber   = flag.Int("t", 0, "end issue number, 0 means automatically find the max issue number")
-	syncDir          = flag.String("d", filepath.Join(UserHomeDir(), ".cache", ".redminesync"), "sync directory")
+	syncDir          = flag.String("d", filepath.Join(xdg.CacheHome, ".redminesync"), "sync directory")
 	apiKey           = flag.String("k", os.Getenv("REDMINE_API_KEY"), "redmine API key possible from envvar REDMINE_API_KEY")
 	baseURL          = flag.String("b", os.Getenv("REDMINE_BASE_URL"), "base URL")
 	verbose          = flag.Bool("verbose", false, "verbose output")
@@ -131,34 +132,19 @@ type IssueResponse struct {
 	} `json:"issue"`
 }
 
-// UserHomeDir returns the home directory of the user.
-func UserHomeDir() string {
-	if runtime.GOOS == "windows" {
-		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
-		if home == "" {
-			home = os.Getenv("USERPROFILE")
-		}
-		return home
-	}
-	return os.Getenv("HOME")
-}
-
 // downloadFile saves the contents of a URL to a file. The directory the files
 // is in must exist.
 func downloadFile(link, filepath string) (err error) {
 	if _, err := os.Stat(filepath); os.IsNotExist(err) {
-		out, err := os.Create(filepath)
+		tf, err := ioutil.TempFile("", "redminesync-")
 		if err != nil {
 			return err
 		}
-		defer out.Close()
-
 		req, err := http.NewRequest("GET", link, nil)
 		if err != nil {
 			log.Fatal(err)
 		}
 		req.Header.Add("X-Redmine-API-Key", *apiKey)
-
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			log.Fatal(err)
@@ -168,8 +154,14 @@ func downloadFile(link, filepath string) (err error) {
 		if resp.StatusCode != http.StatusOK {
 			return fmt.Errorf("bad status: %s", resp.Status)
 		}
-		n, err := io.Copy(out, resp.Body)
+		n, err := io.Copy(tf, resp.Body)
 		if err != nil {
+			return err
+		}
+		if err := tf.Close(); err != nil {
+			return err
+		}
+		if err := os.Rename(tf.Name(), filepath); err != nil {
 			return err
 		}
 		if *verbose {
@@ -193,9 +185,8 @@ func downloadAttachment(link, rootDirectory string, issue int) error {
 		return fmt.Errorf("unexpected redmine download url: %s", link)
 	}
 	dst := filepath.Join(rootDirectory, fmt.Sprintf("%d", issue), path)
-	dstDir := filepath.Dir(dst)
-	if _, err := os.Stat(dstDir); os.IsNotExist(err) {
-		if err := os.MkdirAll(dstDir, 0755); err != nil {
+	if _, err := os.Stat(filepath.Dir(dst)); os.IsNotExist(err) {
+		if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -218,7 +209,6 @@ func main() {
 	if *verbose {
 		log.Printf("syncing redmine attachments to %s", *syncDir)
 	}
-
 	if *endIssueNumber == 0 {
 		maxIssue, err := redminesync.FindMaxIssue(*baseURL, *apiKey)
 		if err != nil {
@@ -229,26 +219,21 @@ func main() {
 			log.Printf("found max issue number: %d", maxIssue)
 		}
 	}
-
 	var bar *progressbar.ProgressBar
 	if *showProgress && !*verbose {
 		bar = progressbar.New(*endIssueNumber - *startIssueNumber)
 	}
-
 	for i := *startIssueNumber; i <= *endIssueNumber; i++ {
 		if *showProgress && !*verbose {
 			bar.Add(1)
 		}
-
 		issueNo := fmt.Sprintf("%d", i)
 		link := fmt.Sprintf("%s/issues/%s.json?include=attachments", *baseURL, issueNo)
-
 		req, err := http.NewRequest("GET", link, nil)
 		if err != nil {
 			log.Fatal(err)
 		}
 		req.Header.Add("X-Redmine-API-Key", *apiKey)
-
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			log.Fatal(err)
@@ -260,7 +245,6 @@ func main() {
 		if resp.StatusCode >= 400 {
 			log.Fatalf("%s: %s", resp.Status, link)
 		}
-
 		var issue IssueResponse
 		if err := json.NewDecoder(resp.Body).Decode(&issue); err != nil {
 			log.Fatalf("decode: %s", err)
