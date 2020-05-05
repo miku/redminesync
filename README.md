@@ -1,6 +1,6 @@
 # redminesync
 
-Download attachments from Redmine.
+Download attachments from Redmine, you will need your [API key](https://redmine.example.com/my/api_key).
 
 ```
 $ go get github.com/miku/redminesync/cmd/redminesync
