@@ -3,7 +3,7 @@
 Download attachments from Redmine, you will need your [API key](https://redmine.example.com/my/api_key).
 
 ```
-$ go get github.com/miku/redminesync/cmd/redminesync
+$ go install github.com/miku/redminesync/cmd/redminesync@latest
 $ redminesync -verbose -k 123412341234123412341234 -b https://redmine.example.com
 ```
 
